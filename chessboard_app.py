@@ -1,5 +1,8 @@
 import os
+import chess
+import chess.svg
 from PyQt5.QtWidgets import QMainWindow, QLabel, QTextEdit, QPushButton, QVBoxLayout, QWidget, QApplication
+from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtCore import Qt
 from utils import capture_chessboard
 from chess_analyzer import ChessAnalyzer
@@ -13,6 +16,7 @@ class ChessboardApp(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        self.board = chess.Board()  # Initialize the chess board
         self._setup_window()
         self._setup_ai()
         self._setup_ui()
@@ -20,7 +24,7 @@ class ChessboardApp(QMainWindow):
     def _setup_window(self):
         """Configure main window properties"""
         self.setWindowTitle("Chess Position Analyzer")
-        self.setGeometry(100, 100, 800, 800)
+        self.setGeometry(100, 100, 600, 700)  # Adjusted dimensions to reduce width and better fit the chessboard
 
     def _setup_ai(self):
         """Initialize AI components"""
@@ -50,6 +54,8 @@ class ChessboardApp(QMainWindow):
         self.capture_button = QPushButton("Capture Chessboard", self)
         self.capture_button.clicked.connect(self.capture_and_analyze)
 
+        self.svg_widget = QSvgWidget()
+
         # Set up layout
         layout = QVBoxLayout()
         layout.addWidget(self.capture_button)
@@ -57,10 +63,13 @@ class ChessboardApp(QMainWindow):
         layout.addWidget(self.position_text)
         layout.addWidget(self.analysis_label)
         layout.addWidget(self.analysis_text)
+        layout.addWidget(self.svg_widget)
 
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
+
+        self.update_board()
 
     def capture_and_analyze(self):
         """Capture screen region and analyze chess position"""
@@ -82,6 +91,16 @@ class ChessboardApp(QMainWindow):
             # Analyze position
             analysis = self.analyzer.analyze_position(fen_position)
             self.analysis_text.setText(analysis)
+
+            # Extract the best move in UCI format
+            lines = analysis.split("\n")
+            for line in lines:
+                if "Best move for" in line:
+                    move_parts = line.split(":")[-1].strip().split(" to ")
+                    if len(move_parts) == 2:
+                        best_move = move_parts[0] + move_parts[1]  # Convert to UCI format
+                        self.highlight_moves(best_move)
+                        break
 
         except Exception as e:
             self.position_text.setText(f"An error occurred: {e}")
@@ -113,6 +132,8 @@ class ChessboardApp(QMainWindow):
             if response.text:
                 fen_position = response.text.strip()
                 self.position_text.setText(fen_position)
+                self.board.set_fen(fen_position)
+                self.update_board()
                 return fen_position
             else:
                 self.position_text.setText("No response from the model.")
@@ -121,3 +142,29 @@ class ChessboardApp(QMainWindow):
         except Exception as e:
             self.position_text.setText(f"Error getting FEN position: {e}")
             return None
+
+    def update_board(self):
+        """Update the SVG chessboard display"""
+        board_svg = chess.svg.board(self.board)
+        self.svg_widget.load(bytearray(board_svg, encoding='utf-8'))
+
+    def highlight_moves(self, move):
+        """Highlight the recommended move on the board without altering the game state."""
+        if move:
+            try:
+                # Parse the move in UCI format to ensure compatibility with chess.svg
+                chess_move = chess.Move.from_uci(move)
+                if chess_move in self.board.legal_moves:
+                    board_svg = chess.svg.board(self.board, lastmove=chess_move)  # Highlight the move
+                    self.svg_widget.load(bytearray(board_svg, encoding='utf-8'))
+            except ValueError:
+                pass
+        else:
+            self.update_board()  # Fallback to updating the board without highlights
+
+if __name__ == "__main__":
+    import sys
+    app = QApplication(sys.argv)
+    viewer = ChessboardApp()
+    viewer.show()
+    sys.exit(app.exec_())
