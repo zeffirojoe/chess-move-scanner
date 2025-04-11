@@ -23,7 +23,6 @@ The Chess Position Analyzer is a Python application that allows users to capture
 1. Clone the repository:
    ```bash
    git clone https://github.com/zeffirojoe/chess-move-scanner.git
-   cd chess
    ```
 2. Install the required Python packages:
    ```bash
