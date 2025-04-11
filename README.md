@@ -16,12 +16,13 @@ The Chess Position Analyzer is a Python application that allows users to capture
 - Python 3.10 or later
 - Windows OS
 - Stockfish chess engine (included in the repository)
+- Gemini API Key: Obtain an API key from [Gemini AI](https://ai.google/tools/) to enable advanced position recognition.
 
 ## Installation
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/zeffirojoe/chess-move-scanner.git
    cd chess
    ```
 2. Install the required Python packages:
