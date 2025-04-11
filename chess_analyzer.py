@@ -35,14 +35,19 @@ class ChessAnalyzer:
         )
 
     def _configure_stockfish(self, stockfish, fen_position):
-        """Send initial configuration commands to Stockfish"""
+        """Send initial configuration commands to Stockfish with optimal settings"""
         commands = [
             "uci",
             "isready",
+            "setoption name Hash value 1024",  # Set hash table to 1GB
+            "setoption name Threads value 4",   # Use 4 CPU threads
+            "setoption name Skill Level value 20",  # Maximum skill level
             "setoption name UCI_AnalyseMode value true",
-            "setoption name MultiPV value 1",
+            "setoption name MultiPV value 3",   # Show top 3 moves
+            "setoption name Contempt value 0",  # Neutral evaluation
+            "setoption name Minimum Thinking Time value 3000",  # Min 3 seconds per move
             f"position fen {fen_position}",
-            "go movetime 3000"
+            "go depth 22 movetime 5000"  # Analyze to depth 22 or 5 seconds, whichever comes first
         ]
         for cmd in commands:
             stockfish.stdin.write(cmd + "\n")
