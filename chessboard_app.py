@@ -17,6 +17,7 @@ class ChessboardApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.board = chess.Board()  # Initialize the chess board
+        self.board_flipped = False  # Track board orientation
         self._setup_window()
         self._setup_ai()
         self._setup_ui()
@@ -42,6 +43,9 @@ class ChessboardApp(QMainWindow):
     def _setup_ui(self):
         """Initialize UI components"""
         # Create widgets
+        self.orientation_label = QLabel("White's side at bottom", self)
+        self.orientation_label.setAlignment(Qt.AlignCenter)
+
         self.position_label = QLabel("Current Position (FEN):", self)
         self.position_text = QTextEdit(self)
         self.position_text.setReadOnly(True)
@@ -54,11 +58,16 @@ class ChessboardApp(QMainWindow):
         self.capture_button = QPushButton("Capture Chessboard", self)
         self.capture_button.clicked.connect(self.capture_and_analyze)
 
+        self.flip_button = QPushButton("Flip Board", self)
+        self.flip_button.clicked.connect(self.flip_board)
+
         self.svg_widget = QSvgWidget()
 
         # Set up layout
         layout = QVBoxLayout()
         layout.addWidget(self.capture_button)
+        layout.addWidget(self.flip_button)
+        layout.addWidget(self.orientation_label)
         layout.addWidget(self.position_label)
         layout.addWidget(self.position_text)
         layout.addWidget(self.analysis_label)
@@ -145,22 +154,27 @@ class ChessboardApp(QMainWindow):
 
     def update_board(self):
         """Update the SVG chessboard display"""
-        board_svg = chess.svg.board(self.board)
+        board_svg = chess.svg.board(self.board, flipped=self.board_flipped)
         self.svg_widget.load(bytearray(board_svg, encoding='utf-8'))
+
+    def flip_board(self):
+        """Flip the board view between white and black perspective"""
+        self.board_flipped = not self.board_flipped
+        self.orientation_label.setText("Black's side at bottom" if self.board_flipped else "White's side at bottom")
+        self.update_board()
 
     def highlight_moves(self, move):
         """Highlight the recommended move on the board without altering the game state."""
         if move:
             try:
-                # Parse the move in UCI format to ensure compatibility with chess.svg
                 chess_move = chess.Move.from_uci(move)
                 if chess_move in self.board.legal_moves:
-                    board_svg = chess.svg.board(self.board, lastmove=chess_move)  # Highlight the move
+                    board_svg = chess.svg.board(self.board, lastmove=chess_move, flipped=self.board_flipped)
                     self.svg_widget.load(bytearray(board_svg, encoding='utf-8'))
             except ValueError:
                 pass
         else:
-            self.update_board()  # Fallback to updating the board without highlights
+            self.update_board()
 
 if __name__ == "__main__":
     import sys
